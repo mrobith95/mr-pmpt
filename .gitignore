@@ -172,3 +172,13 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+playground.py
+data/
+data2/
+to_do.txt
+linkedin post.txt
+my_playground.py
+download_data_bulk2.py
+make_plot.py
+data_update.py
+append_or_create_csv.py
