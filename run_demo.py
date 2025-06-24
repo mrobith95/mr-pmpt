@@ -51,6 +51,15 @@ isi_tick = ['AAPL', 'AMGN', 'AMZN', 'AXP', 'BA',
 ini_dict = {isi_dropdown[i]: isi_tick[i] for i in range(len(isi_dropdown))}
 ini_df = pd.Series(ini_dict)
 
+def_ac = {'Tickers': [' '], 'Weights (%)': [' ']}
+def_ac = pd.DataFrame(def_ac)
+
+ini_comp = {}
+ini_comp['Metrics'] = ['Annual Expected Return (%)', 'Annual Standard Deviation (%)', 'Risk-Adjusted Return (ER/SD, %)', 'Annual Max. Drawdown* (%)']
+ini_comp['Optimized'] = [0, 0, 0, 0]
+ini_comp['Equal Weight'] = [0, 0, 0, 0]
+pd_comp = pd.DataFrame(ini_comp)
+
 def grafik_lilin(ticker_choice, risk_type, is_rp):
 
     ## check input: ticker must be larger than 1
@@ -185,10 +194,10 @@ with gr.Blocks() as demo:
 
     gr.Markdown("""## Assets Composition """)
     asset_fig = gr.Plot(label='asset-composition-plot', format='png')
-    asset_comp = gr.Dataframe(label='asset-composition')
+    asset_comp = gr.Dataframe(label='asset-composition', value=def_ac)
 
     gr.Markdown("""## Performance Comparison """)
-    perf_comp = gr.Dataframe(label='performance-comparison')
+    perf_comp = gr.Dataframe(label='performance-comparison', value=pd_comp)
     gr.Markdown("""(*) Max Drawdown computed from _realized_ loss based on uncompounded cumulated returns.""")
 
     gr.Markdown("""## Historical Compounded Cumulative Returns """)
