@@ -71,11 +71,6 @@ def grafik_lilin(ticker_choice, risk_type, is_rp):
     else:
         logik_rp = True
 
-    ## warning: move moderate / risk parity to conservative / risk parity
-    if risk_type == 'Moderate' and logik_rp:
-        risk_type = 'Conservative'
-        gr.Warning('Risk Parity with Moderate Risk seems to be not working. Risk replaced to Conservative instead.', duration=5)
-
     abbrev = ini_df[ticker_choice]
     luaran, fig_comp, out_w, performance, fig_ser, fig_hist, fig_dd = do_analysis(abbrev.tolist(), risk_type, logik_rp)
     # print(luaran)
@@ -181,13 +176,14 @@ with gr.Blocks() as demo:
         crypto_button = gr.Button('Cryptos')
 
     with gr.Row():
-        risk_type = gr.Dropdown(['Conservative','Moderate','Aggresive'], 
-                                label='Risk Tolerance',
-                                info='Choose Risk Type',
-                                value='Moderate')
-        is_rp     = gr.Dropdown(['Maximize Risk-adjusted Return','Spread Risk Across Selected Assets'], 
+        risk_float = gr.Slider(minimum=-1, maximum=1, value=0, step=0.01, label='Risk Tolerance',
+                               info="""Use the slider to determine risk tolerance, ot type between -1 to 1. Default is 0.
+                                The more left/right the slider, more conservative/aggresive portfolio is.
+                                Beware: Too aggresive porftfolios might use only 1 asset! """)
+        is_rp     = gr.Dropdown(['Maximize Risk-adjusted Return','Spread Risk Across Assets (Risk Parity)'], 
                                 label='Allocation Strategy',
-                                info='Choose Allocation Strategy',
+                                info="""Choose Allocation Strategy.
+                                For now, Risk parity ignores risk tolerance""",
                                 value='Maximize Risk-adjusted Return')
 
     submit_button = gr.Button("Submit", variant='primary')
@@ -195,19 +191,30 @@ with gr.Blocks() as demo:
     gr.Markdown("""## Assets Composition """)
     asset_fig = gr.Plot(label='asset-composition-plot', format='png')
     asset_comp = gr.Dataframe(label='asset-composition', value=def_ac)
+    gr.Markdown("""Plot and table above showing the percentage allocation of each asset in a portfolio. For example: If ABC's weight is 10% and your balance is 1000 USD, then you should allocate 100 USD to buy ABC.""")
 
     gr.Markdown("""## Performance Comparison """)
     perf_comp = gr.Dataframe(label='performance-comparison', value=pd_comp)
-    gr.Markdown("""(*) Max Drawdown computed from _realized_ loss based on uncompounded cumulated returns.""")
+    gr.Markdown("""* Annual Expected Return is the average return a portfolio is expected to generate in one year, based on historical data.
+                * Annualized Standard Deviation is a measure of the volatility or risk of a portfolio's returns over a year, indicating how much the returns typically deviate from the average.
+                * Annualized Risk-adjusted Return is Annualized Expected Return / Annualized Standard Deviation, displayed as percentage. 
+                * Max Drawdown is the largest peak-to-trough decline in portfolio value over 2 years, showing the worst historical loss before a recovery. On more techincal detail, Drawdowns are computed from uncompounded cumulative returns.""")
 
     gr.Markdown("""## Historical Compounded Cumulative Returns """)
     ret_comp = gr.Plot(label='historical-compounded-cumulative-returns', format='png')
+    gr.Markdown("""This plot describes total return of a portfolio over 2 years assuming reinvestment of profits, compounded at each time step.""")
 
     gr.Markdown("""## Portfolio Returns Histogram """)
     ret_hist = gr.Plot(label='return-histogram', format='png')
+    gr.Markdown("""This bar plot showing the distribution of portfolio returns over 2 years, visualizing frequency and range of returns. 
+                
+                * Value at Risk (VaR) estimates the maximum expected loss at a 95% confidence level, while Conditional Value at Risk (CVaR) is the average loss beyond the VaR threshold.""")
 
     gr.Markdown("""## Historical Uncompounded Drawdown """)
     dd_hist = gr.Plot(label='historical-drawdown', format='png')
+    gr.Markdown("""This plot showing the percentage losses from the most recent peak without compounding the effects over 2 years.
+                
+                * Drawdown at Risk (DaR) measures the potential drawdown at a 95% confidence level, and Conditional Drawdown at Risk (CDaR) averages the worst drawdowns beyond that level.""")
 
     # with gr.Row():
     #     symbol_choice = gr.Dropdown(isi_dropdown, label='Available Tickers', info="Choose 1 from the following list.")
@@ -234,7 +241,7 @@ with gr.Blocks() as demo:
 
     # # # display chart only after submit button is clicked
     submit_button.click(fn=grafik_lilin,
-                        inputs=[ticker_choice, risk_type, is_rp],
+                        inputs=[ticker_choice, risk_float, is_rp],
                         outputs=[asset_fig, asset_comp, perf_comp,
                                  ret_comp, ret_hist, dd_hist])
     

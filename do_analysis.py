@@ -7,7 +7,7 @@ import matplotlib.dates as mdates
 import matplotlib.ticker as mtick
 from download_data_bulk import download_data_check
 
-def do_analysis(tick_list, risk_type, isit_rp):
+def do_analysis(tick_list, risk_float, isit_rp):
     to_download =  ['AAPL', 'AMGN', 'AMZN', 'AXP', 'BA',
                     'CAT', 'CRM', 'CSCO', 'CVX', 'DIS',
                     'GS', 'HD', 'HON', 'IBM', 'JNJ',
@@ -19,7 +19,7 @@ def do_analysis(tick_list, risk_type, isit_rp):
                     'BTC-USD', 'ETH-USD', 'XRP-USD', 'BNB-USD', 'SOL-USD', 
                     'DOGE-USD', 'ADA-USD', 'TRX-USD', 'SUI20947-USD', 'LINK-USD']
     download_data_check(to_download)
-    # risk_type = 'Moderate'
+    risk_float = float(risk_float)
     # isit_rp = False
 
     ## look for what symbols used
@@ -102,114 +102,82 @@ def do_analysis(tick_list, risk_type, isit_rp):
     rf = 0 #risk-free return
     raf = 0 #risk aversion factor for 'Utility' objective
 
-    w = port.optimization(model=model, rm=rm, obj=obj, hist=hist, rf=rf, l=raf)
-    dispw = w.copy()
-
-    # dispw untuk keperlu display only
-    dispw = 100*dispw
-    dispw = (dispw.round(2))
-
-    # print(w)
-    # print('-====')
-
-    if (not isit_rp) and (risk_type == 'Moderate'):
-        # print(dispw)
-        out_w = w.copy()
-        disp_out_w = dispw.copy()
-        # print('return w dan dispw')
-
-    ## get info on expected return, covariance, and returns
-    mu = port.mu
-    cov = port.cov
-    return_port = port.returns
-
-    ## get info on w's return and risk
-    best_return = ((mu @ w).loc[0,'weights'])*252 # this is annual return, considering daily data
-    best_risk   = rp.Sharpe_Risk(w=w, cov=cov, returns=return_port, rm=rm, rf=rf, alpha=0.05)*(252**0.5) # daily factor included
-
-    # efficient frontier limit for cons and aggresive models
-    limits = port.frontier_limits(model=model, rm=rm, rf=rf, hist=hist)
-
-    # get info on limits' return and risk
-    min_ret = ((mu @ limits['w_min']).loc[0])*252
-    min_risk = rp.Sharpe_Risk(w=limits['w_min'], cov=cov, returns=return_port, rm=rm, rf=rf, alpha=0.05)*(252**0.5)
-    max_ret = ((mu @ limits['w_max']).loc[0])*252
-    max_risk = rp.Sharpe_Risk(w=limits['w_max'], cov=cov, returns=return_port, rm=rm, rf=rf, alpha=0.05)*(252**0.5)
-
-    ## set reference for constraint
-    con_ret = (best_return - 0.4*(best_return - min_ret))/252
-    agg_ret = (best_return + 0.4*(max_ret - best_return))/252
-    con_risk = (best_risk - 0.4*(best_risk - min_risk))/(252**0.5)
-    agg_risk = (best_risk + 0.4*(max_risk - best_risk))/(252**0.5)
-
-    ## redo optimization
-    ## consevative 1st
-    port.lowerret = con_ret
-    port.upperdev = con_risk
-
-    con_w = port.optimization(model=model, rm=rm, obj=obj, hist=hist, rf=rf, l=raf)
-
-    dispconw = con_w.copy()
-    dispconw = 100*dispconw
-    dispconw = (dispconw.round(2))
-
-    # print('====')
-    # print(dispconw)
-
-    ## then aggresive
-    port.lowerret = agg_ret
-    port.upperdev = agg_risk
-
-    agg_w = port.optimization(model=model, rm=rm, obj=obj, hist=hist, rf=rf, l=raf)
-
-    dispaggw = agg_w.copy()
-    dispaggw = 100*dispaggw
-    dispaggw = (dispaggw.round(2))
-
-    # print('====')
-    # print(dispaggw)
-
-    if (not isit_rp) and (risk_type == 'Conservative'):
-        # print(dispconw)
-        out_w = con_w.copy()
-        disp_out_w = dispconw.copy()
-        # print('return con_w dan dispconw')
-
-    if (not isit_rp) and (risk_type == 'Aggresive'):
-        # print(dispaggw)
-        out_w = agg_w.copy()
-        disp_out_w = dispaggw.copy()
-        # print('return agg_w dan dispaggw')
-
     if isit_rp:
-        ## perform risk parity
-
-        ## set constraint depends on risk preference
-        if risk_type == 'Conservative':
-            port.lowerret = con_ret
-            port.upperdev = con_risk
-        elif risk_type == 'Aggresive':
-            port.lowerret = agg_ret
-            port.upperdev = agg_risk
-        else:
-            port.lowerret = best_return
-
         rp_w = port.rp_optimization(model=model, rm=rm, hist=hist, rf=rf, b=None)
 
         disprpw = rp_w.copy()
         disprpw = 100*disprpw
         disprpw = (disprpw.round(2))
 
-        # print('=====')
-        # print(disprpw)
-
         out_w = rp_w.copy()
         disp_out_w = disprpw.copy()
 
-        # ax = rp.plot_risk_con(rp_w, cov=port.cov, returns=port.returns, rm=rm, rf=0, alpha=0.05,
-        #                       color='tab:blue')
+    else:
 
-        # plt.show()
+        w = port.optimization(model=model, rm=rm, obj=obj, hist=hist, rf=rf, l=raf)
+        dispw = w.copy()
+
+        # dispw untuk keperlu display only
+        dispw = 100*dispw
+        dispw = (dispw.round(2))
+
+        # print(w)
+        # print('-====')
+
+        if risk_float == 0:
+            # print(dispw)
+            out_w = w.copy()
+            disp_out_w = dispw.copy()
+            # print('return w dan dispw')
+
+        else:
+
+            ## get info on expected return, covariance, and returns
+            mu = port.mu
+            cov = port.cov
+            return_port = port.returns
+
+            ## get info on w's return and risk
+            best_return = ((mu @ w).loc[0,'weights'])*252 # this is annual return, considering daily data
+            best_risk   = rp.Sharpe_Risk(w=w, cov=cov, returns=return_port, rm=rm, rf=rf, alpha=0.05)*(252**0.5) # daily factor included
+
+            # efficient frontier limit for cons and aggresive models
+            limits = port.frontier_limits(model=model, rm=rm, rf=rf, hist=hist)
+
+            # get info on limits' return and risk
+            min_ret = ((mu @ limits['w_min']).loc[0])*252
+            min_risk = rp.Sharpe_Risk(w=limits['w_min'], cov=cov, returns=return_port, rm=rm, rf=rf, alpha=0.05)*(252**0.5)
+            max_ret = ((mu @ limits['w_max']).loc[0])*252
+            max_risk = rp.Sharpe_Risk(w=limits['w_max'], cov=cov, returns=return_port, rm=rm, rf=rf, alpha=0.05)*(252**0.5)
+
+            ## quick pick
+            if risk_float == 1:
+                agg_w = limits['w_max'].to_frame().copy().rename({'w_max':'weights'}, axis=1)
+            elif risk_float == -1:
+                agg_w = limits['w_min'].to_frame().copy().rename({'w_min':'weights'}, axis=1)
+            else:
+                ## set reference for constraint
+                if risk_float > 0:
+                    agg_ret = (best_return + (risk_float)*(max_ret - best_return))/252
+                    agg_risk = (best_risk + (risk_float)*(max_risk - best_risk))/(252**0.5)
+                elif risk_float < 0:
+                    agg_ret = (best_return + (risk_float)*(best_return - min_ret))/252
+                    agg_risk = (best_risk + (risk_float)*(best_risk - min_risk))/(252**0.5)
+
+                ## redo optimization
+                port.lowerret = agg_ret
+                port.upperdev = agg_risk
+
+                agg_w = port.optimization(model=model, rm=rm, obj=obj, hist=hist, rf=rf, l=raf)
+
+            dispaggw = agg_w.copy()
+            dispaggw = 100*dispaggw
+            dispaggw = (dispaggw.round(2))
+
+            # print('====')
+            # print(dispaggw)
+            out_w = agg_w.copy()
+            disp_out_w = dispaggw.copy()
 
     # print(disp_out_w)
 
@@ -302,12 +270,16 @@ def do_analysis(tick_list, risk_type, isit_rp):
     ax_ser_cust = plt.gca().xaxis.set_major_locator(mdates.MonthLocator(interval=6))
     ax_ser_cust = plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 
+    plt.close(fig_ser_cust) ## close plots
+
     # plt.show()
 
     # # plot portfolio composition
     fig_pie, ax_pie = plt.subplots(figsize=(9,6))
     ax_pie = rp.plot_pie(w=out_w, title='Asset Composition', others=0.05) # plot kepotong
     ax_pie.set_aspect('auto')
+
+    plt.close(fig_pie) ## close plots
 
     # plot hist return
     # ax_hist = rp.plot_hist(returns = rekam_return, w = out_w) # work, but probably need our own
@@ -333,6 +305,8 @@ def do_analysis(tick_list, risk_type, isit_rp):
     ax_hist = plt.gca().xaxis.set_major_locator(mtick.MultipleLocator(1))
     ax_hist = plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1.0))
     #plt.show()
+
+    plt.close(fig_hist) ## close plots
 
     # # plot drawdown
     # ax_dd = rp.plot_drawdown(returns = rekam_return, w = out_w) # work, but probably need our own
@@ -360,6 +334,7 @@ def do_analysis(tick_list, risk_type, isit_rp):
     ax_dd = plt.tight_layout()
     ax_dd = plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1.0))
     # plt.show()
+    plt.close(fig_dd) ## close plots
 
     ## modify output
     isi_dropdown = ['Apple (AAPL)',
